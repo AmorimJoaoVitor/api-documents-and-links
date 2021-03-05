@@ -4,22 +4,44 @@
 const Document = use('App/Models/Document')
 class DocumentController {
 
-    async store({ request }) {
+    async create({ view }) {
+        return view.render('document.create');
+    }
+
+    async store({ request, auth, response }) {
+        // const { id } = auth.users;
 
         const dataToCreate = request.only(['name', 'extension', 'size', 'directory', 'archives', 'fkUser']);
+        const document = await Document.create({ user_id: auth.user.id, ...dataToCreate });
 
+        return document;
         return await Document.create(dataToCreate);
-
     }
 
-    async list() {
-        return await Document.all()
+    async storeFront({ request, auth, response }) {
+        // const { id } = auth.users;
+
+        const dataToCreate = request.only(['name', 'extension', 'size', 'directory', 'archives', 'fkUser']);
+        const document = await Document.create({ user_id: auth.user.id, ...dataToCreate });
+        
+        return response.route('documents.index');
+        return document;
+        return await Document.create(dataToCreate);
     }
 
+    async index({ view }) {
+        const documents = await Document.all();
+        return view.render('document.index', {documents: documents.toJSON()});
+    };
+
+    async indexConsole() {
+        return await Document.query().with('user').fetch();
+    }
     async show({ params }) {
-        return await Document.find(params.id);
-    }
 
+        const document = await Document.findOrFail(params.id);
+        return document;
+    }
     async update({ params, request }) {
 
         const document = await Document.find(params.id);
@@ -32,10 +54,13 @@ class DocumentController {
 
         return document;
     }
-
-    async delete({ params }) {
+    async delete({ params, auth }) {
 
         const document = await Document.find(params.id);
+
+        if (document.user_id != auth.user_id) {
+            return response.status(401);
+        }
 
         await document.delete();
 
@@ -44,6 +69,8 @@ class DocumentController {
         };
 
     }
+
+
 
 }
 
